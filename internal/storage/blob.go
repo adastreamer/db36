@@ -2,14 +2,14 @@ package storage
 
 import (
 	"os"
-	"log"
+	// "log"
 	"math"
 	"bytes"
 	"math/big"
 	// "errors"
 	// "syscall"
 	"path/filepath"
-	"encoding/hex"
+	// "encoding/hex"
 	FA "github.com/detailyang/go-fallocate"
 )
 
@@ -76,18 +76,19 @@ func (this *Blob) WriteAt(address int64, data *[]byte) error {
 }
 
 func (this *Blob) Set(key *big.Int, value *[]byte) (int64, uint8, error) {
-	valueSize := uint64(len(*value))
+	valueReader := bytes.NewReader(*value)
+	valueLen := uint64(valueReader.Len())
+
 	data := make([]byte, this.recordSize)
 	i := this.SlotOf(key)
 	iters := uint8(0)
 
-	if valueSize > this.ValueSize {
+	if valueLen > this.ValueSize {
 		return 0, iters, BlobRecordExceedsSize
 	}
 
 	if !this.shrinked {
-		r := bytes.NewReader(*value)
-		if _, err := r.Read(data[this.ValueSize - valueSize:]); err != nil {
+		if _, err := valueReader.Read(data[this.ValueSize - valueLen:]); err != nil {
 			return i, iters, err
 		}
 		if err := this.WriteAt(i, &data); err != nil {
@@ -97,15 +98,15 @@ func (this *Blob) Set(key *big.Int, value *[]byte) (int64, uint8, error) {
 	}
 
 	keyData := key.Bytes()
-	log.Printf("%x: %x", keyData, *value)
+	// log.Printf("%x: %x", keyData, *value)
 	keyDataSize := uint64(len(keyData))
 	if _, err := bytes.NewReader(keyData).Read(data[this.KeySize - keyDataSize:]); err != nil {
 		return i, iters, err
 	}
-	if _, err := bytes.NewReader(*value).Read(data[uint64(this.recordSize) - valueSize:]); err != nil {
+	if _, err := valueReader.Read(data[uint64(this.recordSize) - valueLen:]); err != nil {
 		return i, iters, err
 	}
-	log.Printf("data: %x", data)
+	// log.Printf("data: %x", data)
 
 	recordKey := big.NewInt(0)
 	recordKeyData := make([]byte, this.keySize)
@@ -141,7 +142,7 @@ func (this *Blob) Get(key *big.Int) ([]byte, int64, uint8, error) {
 			return nil, 0, iters, err
 		}
 
-		log.Printf("[%d] bytes @ %d: %s", this.recordSize, i, hex.EncodeToString(data))
+		// log.Printf("[%d] bytes @ %d: %s", this.recordSize, i, hex.EncodeToString(data))
 
 		if !this.shrinked {
 			return data, i, iters, nil

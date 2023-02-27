@@ -2,9 +2,11 @@ package storage
 
 import(
 	// "time"
+	"fmt"
 	"testing"
 	"math/big"
 	"encoding/hex"
+	"encoding/binary"
 )
 
 const (
@@ -182,19 +184,61 @@ func BenchmarkCapacityIndexCalc(b *testing.B) {
 	b.ReportAllocs()
 	blob := &Blob{
 		Path: TEST_BLOB_PATH,
-		Capacity: 12, // 2 ** 10
+		Capacity: 12, // 2 ** 12
 		KeySize: 8,
 		ValueSize: 4,
 	}
 	blob.Init()
-	index := int64(0)
 	step := int64(1198372)
 
 	for i := 0; i < b.N; i++ {
+		index := int64(0)
 		for ind := 1; ind <= 1024; ind++ {
-    		index += step
-    		blob.SlotOf(big.NewInt(index))
+			index += step
+			blob.SlotOf(big.NewInt(index))
 		}
 	}
 	blob.Destroy()
+}
+
+func BenchmarkGetSetRecsBlob(b *testing.B) {
+	b.ReportAllocs()
+	blob := &Blob{
+		Path: TEST_BLOB_PATH,
+		Capacity: 27,
+		KeySize: 4,
+		ValueSize: 4,
+	}
+
+	blob.Init()
+	step := int64(1198372)
+
+	index := int64(0)
+
+	for i := 0; i < b.N; i++ {
+		index = int64(0)
+		for ind := 1; ind <= 1024; ind++ {
+			index += step
+			val := make([]byte, 4)
+			binary.LittleEndian.PutUint32(val, uint32(ind * 3))
+			address, iters, err := blob.Set(big.NewInt(index), &val)
+			if err != nil {
+				panic(fmt.Sprintf("<%d> (%d): %d: %s", address, iters, big.NewInt(index), err.Error()))
+			}
+		}
+		index = int64(0)
+		for ind := 1; ind <= 1024; ind++ {
+			index += step
+			data, _, iters, err := blob.Get(big.NewInt(index))
+			if err != nil {
+				panic(fmt.Sprintf("<%d> (%d): %s", big.NewInt(index), iters, err.Error()))
+			}
+
+			val := binary.LittleEndian.Uint32(data)
+			if val != uint32(ind * 3) {
+				panic("wrong value read")
+			}
+		}
+	}
+	// blob.Destroy()
 }
