@@ -77,7 +77,6 @@ func main() {
 		}
 		values = append(values, *value)
 		valuesB = append(valuesB, value.Bytes())
-		log.Printf(" [*] Value size: %d", len(value.Bytes()));
 		i -= uint64(1)
 	}
 	log.Printf(" [*] Generated %d keys and %d values", len(keys), len(values))
