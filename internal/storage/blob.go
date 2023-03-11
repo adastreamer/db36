@@ -2,6 +2,7 @@ package storage
 
 import (
 	"os"
+	"fmt"
 	// "log"
 	"math"
 	"bytes"
@@ -89,10 +90,10 @@ func (this *Blob) Set(key *big.Int, value *[]byte) (int64, uint8, error) {
 
 	if !this.shrinked {
 		if _, err := valueReader.Read(data[this.ValueSize - valueLen:]); err != nil {
-			return i, iters, err
+			return i, iters, fmt.Errorf("unshrinked data concatenation error (data[%d - %d]): %w", this.ValueSize, valueLen, err)
 		}
 		if err := this.WriteAt(i, &data); err != nil {
-			return i, iters, err
+			return i, iters, fmt.Errorf("unshrinked write error: %w", err)
 		}
 		return i, iters, nil
 	}
@@ -101,10 +102,10 @@ func (this *Blob) Set(key *big.Int, value *[]byte) (int64, uint8, error) {
 	// log.Printf("%x: %x", keyData, *value)
 	keyDataSize := uint64(len(keyData))
 	if _, err := bytes.NewReader(keyData).Read(data[this.KeySize - keyDataSize:]); err != nil {
-		return i, iters, err
+		return i, iters, fmt.Errorf("shrinked data concatenation of key error (data[%d - %d]): %w", this.KeySize, keyDataSize, err)
 	}
 	if _, err := valueReader.Read(data[uint64(this.recordSize) - valueLen:]); err != nil {
-		return i, iters, err
+		return i, iters, fmt.Errorf("shrinked data concatenation of value error (data[%d - %d]): %w", uint64(this.recordSize), valueLen, err)
 	}
 	// log.Printf("data: %x", data)
 
@@ -113,12 +114,12 @@ func (this *Blob) Set(key *big.Int, value *[]byte) (int64, uint8, error) {
 	for {
 		iters += 1
 		if err := this.ReadAt(i, &recordKeyData); err != nil {
-			return i, iters, err
+			return i, iters, fmt.Errorf("shrinked read error: %w", err)
 		}
 		recordKey.SetBytes(recordKeyData)
 		if (key.Cmp(recordKey) == 0) || (recordKey.Cmp(zero) == 0) {
 			if err := this.WriteAt(i, &data); err != nil {
-				return i, iters, err
+				return i, iters, fmt.Errorf("shrinked write error: %w", err)
 			}
 			return i, iters, nil
 		}

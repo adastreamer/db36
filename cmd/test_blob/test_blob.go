@@ -9,6 +9,10 @@ import (
 	"github.com/adastreamer/db36/internal/storage"
 )
 
+var (
+	zero = big.NewInt(0)
+)
+
 func main() {
 	path := flag.String("path", "./test.bl", "Blob file path (uri)")
 	capacity := flag.Uint("capacity", 0, "Blob capacity (2^capacity records in total)")
@@ -48,13 +52,32 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		for {
+			if key.Cmp(zero) != 0 {
+				break
+			}
+			key, err = rand.Int(rand.Reader, maxKey)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 		keys = append(keys, *key)
 		value, err := rand.Int(rand.Reader, maxValue)
 		if err != nil {
 			log.Fatal(err)
 		}
+		for {
+			if value.Cmp(zero) != 0 {
+				break
+			}
+			value, err = rand.Int(rand.Reader, maxKey)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 		values = append(values, *value)
 		valuesB = append(valuesB, value.Bytes())
+		log.Printf(" [*] Value size: %d", len(value.Bytes()));
 		i -= uint64(1)
 	}
 	log.Printf(" [*] Generated %d keys and %d values", len(keys), len(values))
@@ -63,7 +86,7 @@ func main() {
 	for i, key := range keys {
 		address, iters, err := blob.Set(&key, &valuesB[i])
 		if err != nil {
-			log.Printf(" [**] Unsuccessful put value @ %d with complexity of %d", address, iters)
+			log.Printf(" [**] Unsuccessful put value with key %s @ %d with complexity of %d", key.String(), address, iters)
 			log.Fatal(err)
 		}
 	}
