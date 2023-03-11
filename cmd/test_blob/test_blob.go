@@ -90,7 +90,7 @@ func main() {
 			log.Printf(" [**] Unsuccessful put value with key %s @ %d with complexity of %d, error: %v", key.String(), address, iters, err)
 		}
 		complexity += int(iters)
-		if (float64(i) / float64(*n)) * float64(100) != progress {
+		if (float64(i) / float64(*n)) * float64(100) - progress >= 1 {
 			progress = (float64(i) / float64(*n)) * float64(100)
 			log.Printf(" [**] %d%%", uint64(progress))
 		}
