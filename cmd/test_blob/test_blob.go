@@ -82,31 +82,38 @@ func main() {
 	log.Printf(" [*] Generated %d keys and %d values", len(keys), len(values))
 
 	start := time.Now()
+	complexity := 0
+	progress := float64(0)
 	for i, key := range keys {
 		address, iters, err := blob.Set(&key, &valuesB[i])
 		if err != nil {
-			log.Printf(" [**] Unsuccessful put value with key %s @ %d with complexity of %d", key.String(), address, iters)
-			log.Fatal(err)
+			log.Printf(" [**] Unsuccessful put value with key %s @ %d with complexity of %d, error: %v", key.String(), address, iters, err)
+		}
+		complexity += int(iters)
+		if (float64(i) / float64(*n)) * float64(100) != progress {
+			progress = (float64(i) / float64(*n)) * float64(100)
+			log.Printf(" [**] %d%%", uint64(progress))
 		}
 	}
 	duration := time.Since(start)
-	log.Printf(" [**] Successful put values in: %s", duration)
+	log.Printf(" [**] Successful put values in: %s, total compexity: %d", duration, complexity)
 
 
 	tmp := new(big.Int)
 
 	start = time.Now()
+	complexity = 0
 	for i, key := range keys {
 		data, address, iters, err := blob.Get(&key)
 		if err != nil {
-			log.Printf(" [**] Unsuccessful get value @ %d with complexity of %d", address, iters)
-			log.Fatal(err)
+			log.Printf(" [**] Unsuccessful get value @ %d with complexity of %d, error: %v", address, iters, err)
 		}
 		tmp.SetBytes(data)
 		if tmp.Cmp(&values[i]) != 0 {
-			log.Fatal(" [**] Inconsistent data for key %d", key)
+			log.Printf(" [**] Inconsistent data for key %d", key)
 		}
+		complexity += int(iters)
 	}
 	duration = time.Since(start)
-	log.Printf(" [**] Successful read values in: %s", duration)
+	log.Printf(" [**] Successful read values in: %s, total compexity: %d", duration, complexity)
 }
